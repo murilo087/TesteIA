@@ -489,10 +489,75 @@
                 errorMessageElement.style.display = 'block';
             }
         }
+        // Função para definir um cookie com um nome, valor e expiração em dias
+        function setCookie(name, value, days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        }
 
+        // Função para obter o valor de um cookie pelo nome
+        function getCookie(name) {
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const cookies = decodedCookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i];
+                while (cookie.charAt(0) === ' ') {
+                    cookie = cookie.substring(1);
+                }
+                if (cookie.indexOf(name) === 0) {
+                    return cookie.substring(name.length + 1, cookie.length);
+                }
+            }
+            return "";
+        }
 
-        // Inicie o jogo assim que a página for carregada
-        window.onload = startGame;
+        // Função para verificar se um cookie com o nome especificado existe
+        function cookieExists(name) {
+            return getCookie(name) !== "";
+        }
+
+        // Função para salvar os dados do jogo em cookies
+        function saveGameToCookies() {
+            setCookie('victoriesCount', victoriesCount, 365);
+            setCookie('defeatsCount', defeatsCount, 365);
+            setCookie('drawsCount', drawsCount, 365);
+            setCookie('totalGamesCount', totalGamesCount, 365);
+            setCookie('playTimeMinutes', playTimeMinutes, 365);
+            setCookie('playTimeSeconds', playTimeSeconds, 365);
+            setCookie('gameHistory', JSON.stringify(gameHistory), 365);
+        }
+
+        // Função para carregar os dados do jogo dos cookies
+        function loadGameFromCookies() {
+            victoriesCount = parseInt(getCookie('victoriesCount')) || 0;
+            defeatsCount = parseInt(getCookie('defeatsCount')) || 0;
+            drawsCount = parseInt(getCookie('drawsCount')) || 0;
+            totalGamesCount = parseInt(getCookie('totalGamesCount')) || 0;
+            playTimeMinutes = parseInt(getCookie('playTimeMinutes')) || 0;
+            playTimeSeconds = parseInt(getCookie('playTimeSeconds')) || 0;
+
+            const storedGameHistory = getCookie('gameHistory');
+            gameHistory = storedGameHistory ? JSON.parse(storedGameHistory) : [];
+        }
+
+        // Inicialize o jogo e carregue dados dos cookies
+        function initializeGame() {
+            loadGameFromCookies();
+            startGame(); // Inicie o cronômetro
+            updateHistory();
+            updateCounters();
+            updatePlayTime();
+        }
+
+        // Salve os dados do jogo em cookies ao fechar a página
+        window.onbeforeunload = function () {
+            saveGameToCookies();
+        };
+
+        // Adicione a chamada para inicializar o jogo
+        window.onload = initializeGame;
     </script>
 </body>
 
