@@ -97,14 +97,6 @@
             right: 20px;
             display: flex;
             gap: 20px;
-        }
-
-        .counters {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 20px;
             transition: color 0.5s ease;
         }
 
@@ -142,6 +134,16 @@
             color: #fff;
         }
 
+        .draws {
+            background-color: #ffc107;
+            color: #fff;
+        }
+
+        .total-games {
+            background-color: #2196f3;
+            color: #fff;
+        }
+
         .statistics {
             position: absolute;
             top: 80px;
@@ -159,17 +161,17 @@
         }
 
         .statistics.theme-purple {
-            border: 2px solid #520be0;
+            border: 3px solid #520be0;
             color: #fff;
         }
 
         .statistics.theme-blue {
-            border: 2px solid #0083b0;
+            border: 3px solid #0083b0;
             color: #fff;
         }
 
         .statistics.theme-default {
-            border: 2px solid #7209af;
+            border: 3px solid #7209af;
             color: #7209af;
         }
 
@@ -186,6 +188,81 @@
 
         .export-button:hover {
             background-color: #006a8a;
+        }
+
+        ..import-button {
+            background-color: #0083b0;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .import-button:hover {
+            background-color: #006a8a;
+        }
+
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            backdrop-filter: blur(5px);
+            /* Efeito blur */
+        }
+
+        .dialog-box {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 3;
+            color: #333;
+            /* Cor do texto */
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+
+        .dialog-input {
+            margin-top: 10px;
+        }
+
+        .dialog-buttons {
+            margin-top: 20px;
+        }
+
+        .import-button {
+            background-color: #0083b0;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .import-button:hover {
+            background-color: #006a8a;
+        }
+
+        .error-message {
+            display: none;
+            /* Esconde a mensagem de erro inicialmente */
         }
     </style>
     <title>Jogo Pedra, Papel e Tesoura</title>
@@ -210,16 +287,39 @@
     <div class="counters">
         <div class="counter victories">Vitórias: <span id="victoriesCount">0</span></div>
         <div class="counter defeats">Derrotas: <span id="defeatsCount">0</span></div>
+        <div class="counter draws">Empates: <span id="drawsCount">0</span></div>
+        <div class="counter total-games">Partidas Totais: <span class="total-games-count" id="totalGamesCount">0</span>
+        </div>
     </div>
     <div class="statistics">
         <strong>Estatísticas:</strong>
         <div>Tempo Jogado: <span id="playTime">00:00</span></div>
         <button class="export-button" onclick="exportStatistics()">Exportar Estatísticas</button>
+        <button class="import-button" onclick="openImportDialog()">Importar Estatísticas</button>
+    </div>
+    <!-- Adição do elemento para exibir mensagem de erro -->
+    <div id="errorMessage" class="error-message">
+        O arquivo não está no formato correto (Formato: 1).
+    </div>
+    <!-- Adição do diálogo de importação -->
+    <div id="importDialog" class="dialog-overlay">
+        <div class="dialog-box">
+            <h2>Importar Estatísticas</h2>
+            <p>Escolha um arquivo no formato correto (Formato: 1).</p>
+            <input type="file" id="importFile" class="dialog-input">
+            <div class="error-message" id="importDialogErrorMessage"></div>
+            <div class="dialog-buttons">
+                <button class="import-button" onclick="importStatisticsFromDialog()">Importar</button>
+                <button class="import-button" onclick="closeImportDialog()">Cancelar</button>
+            </div>
+        </div>
     </div>
     <script>
         let gameHistory = [];
         let victoriesCount = 0;
         let defeatsCount = 0;
+        let drawsCount = 0;
+        let totalGamesCount = 0;
         let playTimeSeconds = 0;
         let playTimeMinutes = 0;
         let currentTheme = 'theme-default';
@@ -238,8 +338,11 @@
                 victoriesCount++;
             } else if (result.includes('perdeu')) {
                 defeatsCount++;
+            } else {
+                drawsCount++;
             }
 
+            totalGamesCount++;
             gameHistory.push(gameResult);
             updateHistory();
             updateCounters();
@@ -271,6 +374,8 @@
         function updateCounters() {
             document.getElementById('victoriesCount').innerText = victoriesCount;
             document.getElementById('defeatsCount').innerText = defeatsCount;
+            document.getElementById('drawsCount').innerText = drawsCount;
+            document.getElementById('totalGamesCount').innerText = totalGamesCount;
         }
 
         function updatePlayTime() {
@@ -308,13 +413,83 @@
         }
 
         function exportStatistics() {
-            const statisticsText = `Vitórias: ${victoriesCount}\nDerrotas: ${defeatsCount}\nTempo Jogado: ${playTimeMinutes}:${String(playTimeSeconds).padStart(2, '0')}\n\nHistórico das Partidas:\n${gameHistory.join('\n')}`;
+            const statisticsText = `Formato: 1\nVitórias: ${victoriesCount}\nDerrotas: ${defeatsCount}\nEmpates: ${drawsCount}\nTotal de Partidas: ${totalGamesCount}\nTempo Jogado: ${playTimeMinutes}:${String(playTimeSeconds).padStart(2, '0')}\n\nHistórico das Partidas:\n${gameHistory.join('\n')}`;
             const blob = new Blob([statisticsText], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = 'estatisticas_jogo.txt';
             a.click();
         }
+
+        // Função para abrir a caixa de diálogo de importação
+        function openImportDialog() {
+            document.getElementById('importDialog').style.display = 'flex';
+        }
+
+        // Função para fechar a caixa de diálogo de importação
+        function closeImportDialog() {
+            document.getElementById('importDialog').style.display = 'none';
+            document.getElementById('importDialogErrorMessage').style.display = 'none'; // Esconder a mensagem de erro ao fechar
+        }
+
+        function updatePlayTimeFromSeconds(seconds) {
+            playTimeSeconds = seconds % 60;
+            playTimeMinutes = Math.floor(seconds / 60);
+
+            const formattedPlayTime = `${String(playTimeMinutes).padStart(2, '0')}:${String(playTimeSeconds).padStart(2, '0')}`;
+            document.getElementById('playTime').innerText = formattedPlayTime;
+        }
+
+
+        // Função para importar estatísticas da caixa de diálogo
+        function importStatisticsFromDialog() {
+            const inputFile = document.getElementById('importFile');
+            const errorMessageElement = document.getElementById('importDialogErrorMessage');
+
+            if (inputFile.files.length > 0) {
+                const fileReader = new FileReader();
+
+                fileReader.onload = function (e) {
+                    const content = e.target.result;
+
+                    try {
+                        const importedData = content.split('\n');
+
+                        if (importedData[0] === 'Formato: 1') {
+                            victoriesCount = parseInt(importedData[1].split(': ')[1]);
+                            defeatsCount = parseInt(importedData[2].split(': ')[1]);
+                            drawsCount = parseInt(importedData[3].split(': ')[1]);
+                            totalGamesCount = parseInt(importedData[4].split(': ')[1]);
+
+                            const playTimeData = importedData[5].split(': ')[1].split(':'); // Corrigir a ordem desta linha
+                            const playTimeInSeconds = parseInt(playTimeData[0]) * 60 + parseInt(playTimeData[1]);
+                            updatePlayTimeFromSeconds(playTimeInSeconds);
+
+                            gameHistory = importedData.slice(7); // Ignorando as primeiras linhas
+
+                            updateHistory();
+                            updateCounters();
+                            updatePlayTime();
+
+                            // Fechar a caixa de diálogo após importar com sucesso
+                            closeImportDialog();
+                        } else {
+                            errorMessageElement.innerText = 'O arquivo não está no formato correto (Formato: 1).';
+                            errorMessageElement.style.display = 'block';
+                        }
+                    } catch (error) {
+                        errorMessageElement.innerText = 'O arquivo não está no formato correto (Formato: 1).';
+                        errorMessageElement.style.display = 'block';
+                    }
+                };
+
+                fileReader.readAsText(inputFile.files[0]);
+            } else {
+                errorMessageElement.innerText = 'Escolha um arquivo para importar.';
+                errorMessageElement.style.display = 'block';
+            }
+        }
+
 
         // Inicie o jogo assim que a página for carregada
         window.onload = startGame;
